@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hairgen-web
+  namespace: hairgen
+  labels:
+    app: hairgen-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hairgen-web
+  template:
+    metadata:
+      labels:
+        app: hairgen-web
+    spec:
+      containers:
+        - name: hairgen-web
+          image: ghcr.io/cezexpl/hairgen-web:latest
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: hairgen-secrets
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "3000"
+            - name: HOSTNAME
+              value: "0.0.0.0"
+            - name: NEXT_PUBLIC_CLERK_SIGN_IN_URL
+              value: "/sign-in"
+            - name: NEXT_PUBLIC_CLERK_SIGN_UP_URL
+              value: "/sign-up"
+            - name: NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL
+              value: "/try"
+            - name: NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL
+              value: "/try"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      imagePullSecrets:
+        - name: ghcr-secret

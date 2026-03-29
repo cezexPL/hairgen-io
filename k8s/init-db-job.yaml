@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hairgen-init-db
+  namespace: hairgen
+spec:
+  template:
+    spec:
+      containers:
+        - name: init-db
+          image: postgres:16-alpine
+          command:
+            - "sh"
+            - "-c"
+            - "PGPASSWORD=hairgen_secret_change_me psql -h hairgen-db -U hairgen -d hairgen -f /schema/schema.sql"
+          volumeMounts:
+            - name: schema
+              mountPath: /schema
+      volumes:
+        - name: schema
+          configMap:
+            name: hairgen-db-schema
+      restartPolicy: Never
+  backoffLimit: 3
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hairgen-db-schema
+  namespace: hairgen
+data:
+  schema.sql: |
+    -- See db/schema.sql for the full schema.
+    -- This ConfigMap should be updated with the contents of db/schema.sql.
+    -- Use: kubectl create configmap hairgen-db-schema --from-file=schema.sql=db/schema.sql -n hairgen --dry-run=client -o yaml | kubectl apply -f -

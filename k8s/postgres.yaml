@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hairgen-db-pvc
+  namespace: hairgen
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hairgen-db
+  namespace: hairgen
+  labels:
+    app: hairgen-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hairgen-db
+  template:
+    metadata:
+      labels:
+        app: hairgen-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: "hairgen"
+            - name: POSTGRES_USER
+              value: "hairgen"
+            - name: POSTGRES_PASSWORD
+              value: "hairgen_secret_change_me"
+          volumeMounts:
+            - name: db-data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+      volumes:
+        - name: db-data
+          persistentVolumeClaim:
+            claimName: hairgen-db-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hairgen-db
+  namespace: hairgen
+  labels:
+    app: hairgen-db
+spec:
+  type: ClusterIP
+  selector:
+    app: hairgen-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
