@@ -91,18 +91,55 @@ export default function LandingPage() {
           </div>
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {[
-              { label: "Hairstyle Change", before: "Original look", after: "French Bob" },
-              { label: "Color Transform", before: "Natural brown", after: "Rose Gold" },
-              { label: "Beard Styling", before: "Clean shave", after: "Full Beard" },
+              {
+                label: "Hairstyle Change",
+                before: "Original look",
+                after: "French Bob",
+                beforeImg: "/gallery/before-hairstyle.jpg",
+                afterImg: "/gallery/after-hairstyle.jpg",
+              },
+              {
+                label: "Color Transform",
+                before: "Natural brown",
+                after: "Rose Gold",
+                beforeImg: "/gallery/before-color.jpg",
+                afterImg: "/gallery/after-color.jpg",
+              },
+              {
+                label: "Beard Styling",
+                before: "Clean shave",
+                after: "Full Beard",
+                beforeImg: "/gallery/before-beard.jpg",
+                afterImg: "/gallery/after-beard.jpg",
+              },
             ].map((item) => (
-              <Card key={item.label} className="overflow-hidden">
-                <div className="aspect-[3/4] bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                  <div className="text-center p-6">
-                    <Sparkles className="h-12 w-12 text-primary mx-auto mb-4" />
-                    <p className="font-medium">{item.label}</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {item.before} → {item.after}
-                    </p>
+              <Card key={item.label} className="overflow-hidden group">
+                <div className="relative aspect-[4/3] overflow-hidden">
+                  {/* Before image */}
+                  <img
+                    src={item.beforeImg}
+                    alt={`Before: ${item.before}`}
+                    className="absolute inset-0 w-full h-full object-cover object-top transition-opacity duration-500 group-hover:opacity-0"
+                  />
+                  {/* After image */}
+                  <img
+                    src={item.afterImg}
+                    alt={`After: ${item.after}`}
+                    className="absolute inset-0 w-full h-full object-cover object-top opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                  />
+                  {/* Labels */}
+                  <div className="absolute bottom-0 left-0 right-0 flex justify-between text-xs font-medium px-3 py-2 bg-gradient-to-t from-black/70 to-transparent text-white">
+                    <span className="group-hover:hidden">{item.before}</span>
+                    <span className="hidden group-hover:inline">{item.after}</span>
+                    <span className="opacity-60 group-hover:hidden">hover to see →</span>
+                    <span className="opacity-60 hidden group-hover:inline">← after</span>
+                  </div>
+                </div>
+                <div className="px-4 py-3 flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                  <div>
+                    <p className="font-medium text-sm">{item.label}</p>
+                    <p className="text-xs text-muted-foreground">{item.before} → {item.after}</p>
                   </div>
                 </div>
               </Card>
