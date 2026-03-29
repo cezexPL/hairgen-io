@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
-import { dark } from "@clerk/themes";
 import { Navbar } from "@/components/shared/navbar";
 import { Footer } from "@/components/shared/footer";
 import "./globals.css";
+
+// ClerkProvider disabled for demo — enable when CLERK keys are configured
+// import { ClerkProvider } from "@clerk/nextjs";
+// import { dark } from "@clerk/themes";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,21 +31,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider
-      appearance={{
-        baseTheme: dark,
-        variables: { colorPrimary: "#a855f7" },
-      }}
-    >
-      <html lang="en" className="dark">
-        <body className={inter.className}>
-          <div className="flex min-h-screen flex-col">
-            <Navbar />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </div>
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="en" className="dark">
+      <body className={inter.className}>
+        <div className="flex min-h-screen flex-col">
+          <Navbar />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </div>
+      </body>
+    </html>
   );
 }

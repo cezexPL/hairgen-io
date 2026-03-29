@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+
 import { Button } from "@/components/ui/button";
 import { Scissors, Menu, X } from "lucide-react";
 import { useState } from "react";
@@ -44,17 +44,15 @@ export function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <SignedOut>
+          <>
             <Link href="/sign-in">
               <Button variant="ghost" size="sm">Sign In</Button>
             </Link>
             <Link href="/sign-up">
               <Button size="sm">Get Started</Button>
             </Link>
-          </SignedOut>
-          <SignedIn>
-            <UserButton afterSignOutUrl="/" />
-          </SignedIn>
+          </>
+          
         </div>
 
         {/* Mobile menu button */}
@@ -84,17 +82,15 @@ export function Navbar() {
             </Link>
           ))}
           <div className="pt-3 border-t flex gap-2">
-            <SignedOut>
+            <>
               <Link href="/sign-in" className="flex-1">
                 <Button variant="outline" className="w-full" size="sm">Sign In</Button>
               </Link>
               <Link href="/sign-up" className="flex-1">
                 <Button className="w-full" size="sm">Get Started</Button>
               </Link>
-            </SignedOut>
-            <SignedIn>
-              <UserButton afterSignOutUrl="/" />
-            </SignedIn>
+            </>
+            
           </div>
         </div>
       )}
