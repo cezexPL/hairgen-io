@@ -39,8 +39,11 @@ RUN adduser --system --uid 1001 nextjs
 # Copy built standalone output
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-# public/ must be copied from source (standalone does not include it automatically)
-COPY --chown=nextjs:nodejs public ./public
+
+# Copy public/ from builder (COPY . . in builder stage includes public/gallery/*.jpg)
+RUN mkdir -p ./public/gallery
+COPY --from=builder /app/public/gallery/ ./public/gallery/
+RUN chown -R nextjs:nodejs ./public
 
 USER nextjs
 
