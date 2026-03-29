@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hairgen-worker
+  namespace: hairgen
+  labels:
+    app: hairgen-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hairgen-worker
+  template:
+    metadata:
+      labels:
+        app: hairgen-worker
+    spec:
+      containers:
+        - name: hairgen-worker
+          image: ghcr.io/cezexpl/hairgen-worker:latest
+          envFrom:
+            - secretRef:
+                name: hairgen-secrets
+          env:
+            - name: NODE_ENV
+              value: "production"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      imagePullSecrets:
+        - name: ghcr-secret

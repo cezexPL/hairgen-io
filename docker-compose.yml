@@ -1,0 +1,121 @@
+version: "3.8"
+
+services:
+  # PostgreSQL database
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: hairgen
+      POSTGRES_USER: hairgen
+      POSTGRES_PASSWORD: hairgen_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hairgen"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis for BullMQ
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # MinIO (S3-compatible storage)
+  minio:
+    image: minio/minio:latest
+    environment:
+      MINIO_ROOT_USER: hairgen-admin
+      MINIO_ROOT_PASSWORD: hairgen-secret-2026
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Create MinIO bucket on startup
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 hairgen-admin hairgen-secret-2026;
+      mc mb --ignore-existing local/hairgen;
+      mc anonymous set download local/hairgen;
+      echo 'MinIO bucket ready';
+      "
+
+  # hairgen.io web app
+  web:
+    build:
+      context: .
+      target: runner
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://hairgen:hairgen_secret@db:5432/hairgen
+      JWT_SECRET: dev-secret-change-me-in-production-min-32-chars
+      JWT_EXPIRES_IN: 7d
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: hairgen-admin
+      MINIO_SECRET_KEY: hairgen-secret-2026
+      MINIO_BUCKET: hairgen
+      MINIO_PUBLIC_URL: http://localhost:9000
+      REDIS_URL: redis://redis:6379
+      FAL_KEY: ${FAL_KEY:-}
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NODE_ENV: production
+
+  # BullMQ Worker
+  worker:
+    build:
+      context: .
+      target: worker
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://hairgen:hairgen_secret@db:5432/hairgen
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: hairgen-admin
+      MINIO_SECRET_KEY: hairgen-secret-2026
+      MINIO_BUCKET: hairgen
+      MINIO_PUBLIC_URL: http://localhost:9000
+      REDIS_URL: redis://redis:6379
+      FAL_KEY: ${FAL_KEY:-}
+      NODE_ENV: production
+
+volumes:
+  db-data:
+  redis-data:
+  minio-data:

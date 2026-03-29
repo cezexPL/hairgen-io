@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { getOrCreateUser, deductCredit, setGdprConsent } from "@/lib/db/users";
+import { getAuthUser } from "@/lib/auth";
+import { getUserById, deductCredit, setGdprConsent } from "@/lib/db/users";
 import { createGeneration } from "@/lib/db/generations";
-import { getUploadPresignedUrl, generateR2Key, getPublicUrl } from "@/lib/r2";
-import { inngest } from "@/lib/inngest";
+import { uploadFile, generateStorageKey } from "@/lib/storage";
+import { enqueueGeneration } from "@/lib/queue";
 import { getStyleById } from "@/lib/catalog";
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId: clerkId } = await auth();
-    if (!clerkId) {
+    const authUser = await getAuthUser(req);
+    if (!authUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -24,8 +24,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Style or prompt required" }, { status: 400 });
     }
 
-    // Get or create user
-    const user = await getOrCreateUser(clerkId, body.email || "unknown@hairgen.io");
+    const user = await getUserById(authUser.id);
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
 
     // Handle GDPR consent
     if (gdprConsent) {
@@ -36,7 +38,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "GDPR consent required" }, { status: 403 });
     }
 
-    // Deduct credit (optimistic)
+    // Deduct credit
     const deducted = await deductCredit(user.id);
     if (!deducted) {
       return NextResponse.json(
@@ -56,29 +58,20 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Generate a temp generation ID to use for R2 key
+    // Generate a temp ID for storage key
     const tempId = crypto.randomUUID();
 
-    // Upload source image to R2
+    // Upload source image to MinIO
     let sourceImageUrl: string;
-    let sourceR2Key: string;
+    let sourceStorageKey: string;
 
     if (sourceImageBase64) {
       const buffer = Buffer.from(sourceImageBase64, "base64");
-      sourceR2Key = generateR2Key("source", user.id, tempId);
-      const presignedUrl = await getUploadPresignedUrl(sourceR2Key, "image/webp");
-
-      // Upload via presigned URL
-      await fetch(presignedUrl, {
-        method: "PUT",
-        body: buffer,
-        headers: { "Content-Type": "image/webp" },
-      });
-
-      sourceImageUrl = getPublicUrl(sourceR2Key);
+      sourceStorageKey = generateStorageKey("source", user.id, tempId);
+      sourceImageUrl = await uploadFile(sourceStorageKey, buffer, "image/webp");
     } else {
       sourceImageUrl = body.sourceImageUrl;
-      sourceR2Key = `external/${tempId}`;
+      sourceStorageKey = `external/${tempId}`;
     }
 
     // Determine watermark
@@ -91,21 +84,18 @@ export async function POST(req: NextRequest) {
       styleCategory,
       prompt: finalPrompt,
       sourceImageUrl,
-      sourceR2Key,
+      sourceStorageKey,
       hasWatermark,
     });
 
-    // Send to Inngest queue
-    await inngest.send({
-      name: "hairstyle/generate.requested",
-      data: {
-        generationId: generation.id,
-        userId: user.id,
-        sourceImageUrl,
-        prompt: finalPrompt,
-        styleId,
-        styleCategory,
-      },
+    // Enqueue BullMQ job
+    await enqueueGeneration({
+      generationId: generation.id,
+      userId: user.id,
+      sourceImageUrl,
+      prompt: finalPrompt,
+      styleId,
+      styleCategory,
     });
 
     return NextResponse.json({

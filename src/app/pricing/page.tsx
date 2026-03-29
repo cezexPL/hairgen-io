@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,26 +43,7 @@ const SUBSCRIPTION_PLANS = [
 ];
 
 export default function PricingPage() {
-  const { isSignedIn } = useUser();
-  const [purchasing, setPurchasing] = useState<string | null>(null);
-
-  const handlePurchase = async (packId: string) => {
-    if (!isSignedIn) return;
-    setPurchasing(packId);
-    try {
-      const res = await fetch("/api/credits/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packId }),
-      });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch {
-      setPurchasing(null);
-    }
-  };
+  const { isSignedIn } = useAuth();
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -109,12 +89,8 @@ export default function PricingPage() {
               </CardContent>
               <CardFooter>
                 {isSignedIn ? (
-                  <Button
-                    className="w-full"
-                    onClick={() => handlePurchase(pack.id)}
-                    disabled={purchasing === pack.id}
-                  >
-                    {purchasing === pack.id ? "Redirecting..." : "Buy Now"}
+                  <Button className="w-full" disabled>
+                    Coming Soon
                   </Button>
                 ) : (
                   <Link href="/sign-up" className="w-full">
@@ -157,8 +133,8 @@ export default function PricingPage() {
               </CardContent>
               <CardFooter>
                 {isSignedIn ? (
-                  <Button className="w-full" variant={plan.popular ? "default" : "outline"}>
-                    Subscribe
+                  <Button className="w-full" variant={plan.popular ? "default" : "outline"} disabled>
+                    Coming Soon
                   </Button>
                 ) : (
                   <Link href="/sign-up" className="w-full">

@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
+import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { Scissors, Menu, X } from "lucide-react";
+import { Scissors, Menu, X, LogOut } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +17,13 @@ const NAV_LINKS = [
 
 export function Navbar() {
   const pathname = usePathname();
+  const { user, isSignedIn, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await logout();
+    setMobileOpen(false);
+  };
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -44,15 +50,24 @@ export function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <>
-            <Link href="/sign-in">
-              <Button variant="ghost" size="sm">Sign In</Button>
-            </Link>
-            <Link href="/sign-up">
-              <Button size="sm">Get Started</Button>
-            </Link>
-          </>
-          
+          {isSignedIn ? (
+            <>
+              <span className="text-sm text-muted-foreground">{user?.email}</span>
+              <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-1">
+                <LogOut className="h-3.5 w-3.5" />
+                Sign Out
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link href="/sign-in">
+                <Button variant="ghost" size="sm">Sign In</Button>
+              </Link>
+              <Link href="/sign-up">
+                <Button size="sm">Get Started</Button>
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile menu button */}
@@ -82,15 +97,21 @@ export function Navbar() {
             </Link>
           ))}
           <div className="pt-3 border-t flex gap-2">
-            <>
-              <Link href="/sign-in" className="flex-1">
-                <Button variant="outline" className="w-full" size="sm">Sign In</Button>
-              </Link>
-              <Link href="/sign-up" className="flex-1">
-                <Button className="w-full" size="sm">Get Started</Button>
-              </Link>
-            </>
-            
+            {isSignedIn ? (
+              <Button variant="outline" className="w-full" size="sm" onClick={handleLogout}>
+                <LogOut className="h-3.5 w-3.5 mr-1" />
+                Sign Out
+              </Button>
+            ) : (
+              <>
+                <Link href="/sign-in" className="flex-1">
+                  <Button variant="outline" className="w-full" size="sm">Sign In</Button>
+                </Link>
+                <Link href="/sign-up" className="flex-1">
+                  <Button className="w-full" size="sm">Get Started</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

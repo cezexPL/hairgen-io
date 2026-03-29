@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,11 +43,10 @@ interface UserData {
   subscriptionTier: string;
   email: string;
   name: string;
-  createdAt: string;
 }
 
 export default function DashboardPage() {
-  const { isSignedIn } = useUser();
+  const { isSignedIn } = useAuth();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [generations, setGenerations] = useState<Generation[]>([]);
   const [selectedGen, setSelectedGen] = useState<Generation | null>(null);
@@ -75,6 +74,7 @@ export default function DashboardPage() {
       setDeleteDialogOpen(false);
       setGenerations([]);
       setUserData(null);
+      window.location.href = "/";
     } catch {
       // ignore
     }

@@ -9,8 +9,8 @@ export interface DbGeneration {
   prompt: string | null;
   source_image_url: string;
   result_image_url: string | null;
-  source_r2_key: string;
-  result_r2_key: string | null;
+  source_storage_key: string;
+  result_storage_key: string | null;
   has_watermark: boolean;
   fal_request_id: string | null;
   error_message: string | null;
@@ -25,11 +25,11 @@ export async function createGeneration(params: {
   styleCategory?: string;
   prompt?: string;
   sourceImageUrl: string;
-  sourceR2Key: string;
+  sourceStorageKey: string;
   hasWatermark: boolean;
 }): Promise<DbGeneration> {
   const rows = await query<DbGeneration>(
-    `INSERT INTO generations (user_id, style_id, style_category, prompt, source_image_url, source_r2_key, has_watermark, status)
+    `INSERT INTO generations (user_id, style_id, style_category, prompt, source_image_url, source_storage_key, has_watermark, status)
      VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
      RETURNING *`,
     [
@@ -38,7 +38,7 @@ export async function createGeneration(params: {
       params.styleCategory ?? null,
       params.prompt ?? null,
       params.sourceImageUrl,
-      params.sourceR2Key,
+      params.sourceStorageKey,
       params.hasWatermark,
     ]
   );
@@ -48,7 +48,7 @@ export async function createGeneration(params: {
 export async function updateGenerationStatus(
   id: string,
   status: string,
-  extra?: { resultImageUrl?: string; resultR2Key?: string; falRequestId?: string; errorMessage?: string; processingTimeMs?: number }
+  extra?: { resultImageUrl?: string; resultStorageKey?: string; falRequestId?: string; errorMessage?: string; processingTimeMs?: number }
 ): Promise<DbGeneration | null> {
   const sets: string[] = ["status = $2"];
   const params: unknown[] = [id, status];
@@ -59,9 +59,9 @@ export async function updateGenerationStatus(
     params.push(extra.resultImageUrl);
     idx++;
   }
-  if (extra?.resultR2Key) {
-    sets.push(`result_r2_key = $${idx}`);
-    params.push(extra.resultR2Key);
+  if (extra?.resultStorageKey) {
+    sets.push(`result_storage_key = $${idx}`);
+    params.push(extra.resultStorageKey);
     idx++;
   }
   if (extra?.falRequestId) {

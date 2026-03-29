@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getAuthUser } from "@/lib/auth";
 import { getGenerationById } from "@/lib/db/generations";
-import { getUserByClerkId } from "@/lib/db/users";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId: clerkId } = await auth();
-    if (!clerkId) {
+    const user = await getAuthUser(req);
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -20,8 +19,7 @@ export async function GET(
     }
 
     // Verify ownership
-    const user = await getUserByClerkId(clerkId);
-    if (!user || generation.user_id !== user.id) {
+    if (generation.user_id !== user.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -33,6 +31,7 @@ export async function GET(
       hasWatermark: generation.has_watermark,
       styleId: generation.style_id,
       prompt: generation.prompt,
+      errorMessage: generation.error_message,
       processingTimeMs: generation.processing_time_ms,
       createdAt: generation.created_at,
     });

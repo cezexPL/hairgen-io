@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hairgen-redis-pvc
+  namespace: hairgen
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hairgen-redis
+  namespace: hairgen
+  labels:
+    app: hairgen-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hairgen-redis
+  template:
+    metadata:
+      labels:
+        app: hairgen-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+          args:
+            - redis-server
+            - --appendonly
+            - "yes"
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 10
+            periodSeconds: 20
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: hairgen-redis-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hairgen-redis
+  namespace: hairgen
+  labels:
+    app: hairgen-redis
+spec:
+  type: ClusterIP
+  selector:
+    app: hairgen-redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+      protocol: TCP

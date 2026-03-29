@@ -5,19 +5,21 @@ export async function GET(req: NextRequest) {
   try {
     const user = await getAuthUser(req);
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ user: null }, { status: 401 });
     }
 
     return NextResponse.json({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      creditsBalance: user.credits_balance,
-      subscriptionTier: user.subscription_tier,
-      gdprConsent: user.gdpr_consent,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        creditsBalance: user.credits_balance,
+        subscriptionTier: user.subscription_tier,
+        gdprConsent: user.gdpr_consent,
+      },
     });
   } catch (error) {
-    console.error("User API error:", error);
+    console.error("Auth me error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

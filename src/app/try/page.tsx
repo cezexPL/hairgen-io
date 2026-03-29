@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth-context";
 import { PhotoUpload } from "@/components/shared/photo-upload";
 import { StyleCatalog } from "@/components/shared/style-catalog";
 import { GdprConsentDialog } from "@/components/shared/gdpr-consent-dialog";
@@ -17,7 +17,7 @@ import Link from "next/link";
 type AppState = "upload" | "style" | "generating" | "result";
 
 export default function TryPage() {
-  const { user, isSignedIn } = useUser();
+  const { isSignedIn } = useAuth();
   const [appState, setAppState] = useState<AppState>("upload");
   const [file, setFile] = useState<File | null>(null);
   const [fileDataUrl, setFileDataUrl] = useState<string | null>(null);
@@ -120,7 +120,6 @@ export default function TryPage() {
           prompt: customPrompt || undefined,
           sourceImageBase64: base64,
           gdprConsent: true,
-          email: user?.emailAddresses[0]?.emailAddress,
         }),
       });
 

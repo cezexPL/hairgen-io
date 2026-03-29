@@ -20,13 +20,11 @@ COPY . .
 # Build-time env vars (dummy values for build, real values injected at runtime)
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_build_placeholder
-ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_build_placeholder
 ENV NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 RUN npm run build
 
-# --- Stage 3: Production runner ---
+# --- Stage 3: Production runner (web) ---
 FROM node:20-alpine AS runner
 WORKDIR /app
 
@@ -48,3 +46,21 @@ USER nextjs
 EXPOSE 3000
 
 CMD ["node", "server.js"]
+
+# --- Stage 4: Worker (BullMQ) ---
+FROM node:20-alpine AS worker
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 worker
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
+COPY --from=builder /app/package.json ./package.json
+
+USER worker
+
+CMD ["npx", "tsx", "src/worker/index.ts"]
